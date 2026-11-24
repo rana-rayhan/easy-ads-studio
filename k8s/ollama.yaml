@@ -1,0 +1,48 @@
+# Ollama, the local AI used by the AI worker.
+# On start it downloads the gemma3:4b model (about 3.3 GB, only the first time).
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admanager-ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admanager-ollama
+  template:
+    metadata:
+      labels:
+        app: admanager-ollama
+    spec:
+      containers:
+        - name: ollama
+          image: ollama/ollama:latest
+          # Use the image already in minikube (copied with "minikube image load").
+          # Without this, a ":latest" image is downloaded again every time (6 GB).
+          imagePullPolicy: IfNotPresent
+          # 1. Start the Ollama server in the background
+          # 2. Download the model (skipped if it is already saved)
+          # 3. Keep running while the server runs
+          command: ["sh", "-c", "ollama serve & sleep 5 && ollama pull gemma3:4b; wait"]
+          ports:
+            - containerPort: 11434
+          # The model (about 3.3 GB) is kept here, so it survives a pod restart
+          volumeMounts:
+            - name: models
+              mountPath: /root/.ollama
+      volumes:
+        - name: models
+          hostPath:
+            path: /data/admanager-ollama
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admanager-ollama # admanager-ollama:11434
+spec:
+  selector:
+    app: admanager-ollama
+  ports:
+    - port: 11434

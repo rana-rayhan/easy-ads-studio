@@ -1,0 +1,100 @@
+# The 2 workers. They use the backend image, but run a different command.
+# They take jobs from RabbitMQ when the app is in "Worker" mode.
+
+# ---------- Ad worker ----------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admanager-ad-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admanager-ad-worker
+  template:
+    metadata:
+      labels:
+        app: admanager-ad-worker
+    spec:
+      containers:
+        - name: ad-worker
+          image: admanager-backend:local
+          imagePullPolicy: Never
+          command: ["npm", "run", "ad-worker"]
+          # Same settings as the backend (see backend.yaml)
+          envFrom:
+            - secretRef:
+                name: backend-env
+          env:
+            - name: DB_HOST
+              value: admanager-db
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USERNAME
+              value: postgres
+            - name: DB_PASSWORD
+              value: postgres
+            - name: DB_DATABASE
+              value: admanager_db
+            - name: REDIS_URL
+              value: redis://admanager-redis:6379
+            - name: RABBITMQ_URL
+              value: amqp://guest:guest@admanager-rabbitmq:5672
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/backend/uploads
+      volumes:
+        - name: uploads
+          hostPath:
+            path: /data/admanager-uploads
+            type: DirectoryOrCreate
+---
+# ---------- AI worker ----------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admanager-ai-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admanager-ai-worker
+  template:
+    metadata:
+      labels:
+        app: admanager-ai-worker
+    spec:
+      containers:
+        - name: ai-worker
+          image: admanager-backend:local
+          imagePullPolicy: Never
+          command: ["npm", "run", "ai-worker"]
+          envFrom:
+            - secretRef:
+                name: backend-env
+          env:
+            - name: DB_HOST
+              value: admanager-db
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USERNAME
+              value: postgres
+            - name: DB_PASSWORD
+              value: postgres
+            - name: DB_DATABASE
+              value: admanager_db
+            - name: REDIS_URL
+              value: redis://admanager-redis:6379
+            - name: RABBITMQ_URL
+              value: amqp://guest:guest@admanager-rabbitmq:5672
+            - name: OLLAMA_URL
+              value: http://admanager-ollama:11434
+          # Reads the uploaded images for "Text from image" and "Check with AI"
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/backend/uploads
+      volumes:
+        - name: uploads
+          hostPath:
+            path: /data/admanager-uploads
+            type: DirectoryOrCreate

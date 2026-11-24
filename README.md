@@ -2,7 +2,7 @@
 
 A small ad manager. You write an ad, a free AI that runs on your own computer helps with the text, and a background worker creates the ad while you watch its status live.
 
-Built as a learning project for React, Express, Redis, RabbitMQ, nginx, the Google Ads API and local AI.
+Built as a learning project for React, Express, Redis, RabbitMQ, nginx, Docker, Kubernetes, the Google Ads API and local AI.
 
 https://github.com/user-attachments/assets/599f6869-6733-4dc1-be05-02bf94a65272
 
@@ -34,6 +34,42 @@ Open <http://localhost:8080>.
 - The first start downloads the AI model (about 3.3 GB), so the AI buttons work after a few minutes.
 - AI in Docker on a Mac runs without the GPU, so answers are slower than running Ollama locally.
 - RabbitMQ web page: <http://localhost:15673> (guest / guest). API docs: <http://localhost:4040/api-docs>.
+
+## Run it with Kubernetes
+
+The same app on a local Kubernetes cluster, with **2 backend pods** and nginx as the load balancer in front of them. Use Docker for daily work; this setup is for learning Kubernetes.
+
+You need [minikube](https://minikube.sigs.k8s.io/) and `kubectl`. On macOS:
+
+```bash
+brew install minikube kubectl
+```
+
+First time:
+
+```bash
+cp backend/.env.sample backend/.env
+minikube start --memory=6g --cpus=4
+minikube image build -t admanager-backend:local -f backend/Dockerfile .
+minikube image build -t admanager-frontend:local -f frontend/Dockerfile .
+minikube image pull ollama/ollama:latest
+kubectl create secret generic backend-env --from-env-file=backend/.env
+kubectl apply -f k8s/
+kubectl get pods -w
+```
+
+When all pods are `Running`, press `Ctrl+C`. Then open the app. If Docker Compose is running, stop it first, because both use port 8080:
+
+```bash
+kubectl port-forward service/admanager-nginx 8080:80
+```
+
+Open <http://localhost:8080>.
+
+- The first start downloads the AI model (about 3.3 GB), so the AI buttons work after a few minutes.
+- The Ollama model needs minikube with **6 GB of memory and 4 CPUs**, and Docker Desktop with at least 8 GB (Settings → Resources). It runs on the CPU only, so AI answers are slow (an image job can take a few minutes).
+- Next time you only need `minikube start` and the `port-forward`.
+- [k8s/README.md](k8s/README.md) explains each file and how to test nginx, the database and the workers.
 
 ## Run it locally
 
@@ -84,3 +120,4 @@ npm run google:check -w backend
 | Google Ads REST API                                | Creating and reading campaigns               |
 | nginx                                              | One address for the app and the API (Docker) |
 | Docker Compose                                     | Runs everything with one command             |
+| Kubernetes (minikube)                              | Runs 2 backend pods behind nginx             |

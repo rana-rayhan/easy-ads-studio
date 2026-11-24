@@ -1,0 +1,86 @@
+# nginx: load balancer for the 2 backend pods, and the way in to the React app.
+
+# ---------- nginx config (mounted as default.conf) ----------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  default.conf: |
+    # Kubernetes DNS, so nginx keeps finding the backend pods when they restart
+    resolver kube-dns.kube-system.svc.cluster.local valid=5s;
+
+    # The backend pods. "resolve" looks up every pod IP behind the name,
+    # and nginx sends requests to them in turn (round robin).
+    upstream backend_pods {
+      zone backend_pods 64k;
+      server admanager-backend.default.svc.cluster.local:4040 resolve;
+    }
+
+    server {
+      listen 80;
+
+      # Answered by nginx itself, to test that nginx works
+      location = /nginx-health {
+        return 200 "ok\n";
+      }
+
+      # /api and /health go to the backend pods
+      location ~ ^/(api|health) {
+        proxy_pass http://backend_pods;
+        client_max_body_size 6m;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        # Shows which pod answered, so you can see the load balancing
+        add_header X-Backend-Pod $upstream_addr always;
+      }
+
+      # Everything else goes to React (Vite)
+      location / {
+        set $frontend http://admanager-frontend.default.svc.cluster.local:5173;
+        proxy_pass $frontend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+      }
+    }
+---
+# ---------- nginx pod ----------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admanager-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admanager-nginx
+  template:
+    metadata:
+      labels:
+        app: admanager-nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/conf.d # the ConfigMap above becomes default.conf here
+      volumes:
+        - name: config
+          configMap:
+            name: nginx-config
+---
+# ---------- nginx service: the way in from your computer ----------
+apiVersion: v1
+kind: Service
+metadata:
+  name: admanager-nginx
+spec:
+  selector:
+    app: admanager-nginx
+  ports:
+    - port: 80

@@ -1,0 +1,78 @@
+# The Express backend, running as 2 pods (replicas: 2).
+# nginx (nginx.yaml) spreads the requests between these 2 pods.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admanager-backend
+spec:
+  replicas: 2 # two copies of the backend
+  selector:
+    matchLabels:
+      app: admanager-backend
+  template:
+    metadata:
+      labels:
+        app: admanager-backend
+    spec:
+      containers:
+        - name: backend
+          image: admanager-backend:local # built inside minikube, see k8s/README.md
+          imagePullPolicy: Never # use the local image, do not download it
+          ports:
+            - containerPort: 4040
+          # 1. Load everything from backend/.env (the "backend-env" secret, see k8s/README.md)
+          envFrom:
+            - secretRef:
+                name: backend-env
+          # 2. Replace the "localhost" values with the Kubernetes service names
+          env:
+            - name: DB_HOST
+              value: admanager-db
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USERNAME
+              value: postgres
+            - name: DB_PASSWORD
+              value: postgres
+            - name: DB_DATABASE
+              value: admanager_db
+            - name: REDIS_URL
+              value: redis://admanager-redis:6379
+            - name: RABBITMQ_URL
+              value: amqp://guest:guest@admanager-rabbitmq:5672
+            - name: CLIENT_HOST_REACT
+              value: http://localhost:8080
+            - name: OLLAMA_URL
+              value: http://admanager-ollama:11434
+          # Uploaded ad images go to a folder shared by all pods (see volumes below)
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/backend/uploads
+          # Send traffic to the pod only after /health answers
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4040
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        # A folder on the minikube machine. Both backend pods and the workers use it,
+        # so an image uploaded through one pod can be read by all the others.
+        - name: uploads
+          hostPath:
+            path: /data/admanager-uploads
+            type: DirectoryOrCreate
+---
+# "Headless" service (clusterIP: None): its DNS name returns the IP of EVERY backend pod,
+# so nginx sees both pods and does the load balancing itself.
+apiVersion: v1
+kind: Service
+metadata:
+  name: admanager-backend
+spec:
+  clusterIP: None
+  selector:
+    app: admanager-backend
+  ports:
+    - port: 4040

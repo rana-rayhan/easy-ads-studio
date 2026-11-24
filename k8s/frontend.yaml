@@ -1,0 +1,37 @@
+# The React app (Vite dev server). nginx sends every page that is not /api to it.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admanager-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admanager-frontend
+  template:
+    metadata:
+      labels:
+        app: admanager-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: admanager-frontend:local # built inside minikube, see k8s/README.md
+          imagePullPolicy: Never
+          env:
+            - name: VITE_STAGE
+              value: local
+            - name: VITE_API_ENDPOINT
+              value: http://localhost:8080/api # the browser calls the API through nginx
+          ports:
+            - containerPort: 5173
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admanager-frontend # admanager-frontend:5173
+spec:
+  selector:
+    app: admanager-frontend
+  ports:
+    - port: 5173
