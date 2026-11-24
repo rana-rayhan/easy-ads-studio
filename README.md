@@ -6,6 +6,8 @@ Built as a learning project for React, Express, Redis, RabbitMQ, nginx, the Goog
 
 ![Easy Ads Studio](docs/easy-ads-studio-poster.jpg)
 
+https://github.com/user-attachments/assets/599f6869-6733-4dc1-be05-02bf94a65272
+
 <!-- Demo video: on github.com, edit this file and drag docs/easy-ads-studio-demo.mp4 here. GitHub replaces it with a playable video link. -->
 
 ## User story
