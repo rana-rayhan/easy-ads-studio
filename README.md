@@ -4,11 +4,7 @@ A small ad manager. You write an ad, a free AI that runs on your own computer he
 
 Built as a learning project for React, Express, Redis, RabbitMQ, nginx, the Google Ads API and local AI.
 
-![Easy Ads Studio](docs/easy-ads-studio-poster.jpg)
-
 https://github.com/user-attachments/assets/599f6869-6733-4dc1-be05-02bf94a65272
-
-<!-- Demo video: on github.com, edit this file and drag docs/easy-ads-studio-demo.mp4 here. GitHub replaces it with a playable video link. -->
 
 ## User story
 
@@ -19,10 +15,10 @@ https://github.com/user-attachments/assets/599f6869-6733-4dc1-be05-02bf94a65272
 1. **Create an account** and log in.
 2. **AI studio**: enter your product and audience, click **Suggest ad text**, then click a headline or description to use it.
 3. **Create ad**: choose an image. Click **Text from image** to let the AI write text from it, or **Check with AI** to get a score and a better version. The preview updates as you type.
-4. Click **Create ad**. The job appears in **Your jobs** and moves from *Waiting* to *Done*.
+4. Click **Create ad**. The job appears in **Your jobs** and moves from _Waiting_ to _Done_.
 5. **Campaigns** (optional, needs Google Ads): create a paused campaign, then click **Explain with AI** for a short summary.
 
-**Worker or Local** (top bar): *Worker* sends each job through RabbitMQ to a worker. *Local* lets the API do the job itself. The dashboard shows which parts are running.
+**Worker or Local** (top bar): _Worker_ sends each job through RabbitMQ to a worker. _Local_ lets the API do the job itself. The dashboard shows which parts are running.
 
 ## Run it with Docker
 
@@ -77,14 +73,14 @@ npm run google:check -w backend
 
 ## Technology
 
-| Part | Used for |
-| --- | --- |
-| React, Vite, Tailwind CSS, Ant Design, React Query | The web app |
-| Express, TypeScript | The API |
-| PostgreSQL (TypeORM) | Users |
-| Redis | Login sessions and job status |
-| RabbitMQ | Job queue between the API and the workers |
-| Ollama (`gemma3:4b`) | Free local AI that reads text and images |
-| Google Ads REST API | Creating and reading campaigns |
-| nginx | One address for the app and the API (Docker) |
-| Docker Compose | Runs everything with one command |
+| Part                                               | Used for                                     |
+| -------------------------------------------------- | -------------------------------------------- |
+| React, Vite, Tailwind CSS, Ant Design, React Query | The web app                                  |
+| Express, TypeScript                                | The API                                      |
+| PostgreSQL (TypeORM)                               | Users                                        |
+| Redis                                              | Login sessions and job status                |
+| RabbitMQ                                           | Job queue between the API and the workers    |
+| Ollama (`gemma3:4b`)                               | Free local AI that reads text and images     |
+| Google Ads REST API                                | Creating and reading campaigns               |
+| nginx                                              | One address for the app and the API (Docker) |
+| Docker Compose                                     | Runs everything with one command             |
