@@ -1,0 +1,77 @@
+{
+  "auth": {
+    "loginRequired": "Please log in to continue.",
+    "loginSuccess": "Logged in successfully!",
+    "invalidCredentials": "Invalid email or password.",
+    "tokenInvalid": "Invalid authentication token.",
+    "tokenExpired": "Your session has expired. Please log in again.",
+    "userNotFound": "User not found.",
+    "forbidden": "You do not have permission to perform this action.",
+    "adminOnly": "Only administrators can perform this action.",
+    "alreadyLoggedIn": "You are already logged in.",
+    "registerSuccess": "Registered successfully!"
+  },
+  "user": {
+    "emailExists": "An account with this email already exists.",
+    "notFound": "User not found.",
+    "listFetched": "Users retrieved successfully.",
+    "detailsFetched": "User details retrieved successfully.",
+    "seedSuccess": "Users created successfully."
+  },
+  "common": {
+    "serverError": "An unexpected server error occurred.",
+    "tooManyRequests": "Too many requests. Please try again later.",
+    "tooManyLoginAttempts": "Too many login attempts. Please try again later.",
+    "badRequest": "Invalid request.",
+    "notFound": "The requested resource was not found.",
+    "unexpectedError": "Something went wrong. Please try again.",
+    "databaseError": "The service is temporarily unavailable. Please try again later."
+  },
+
+  "validation": {
+    "firstNameRequired": "First name is required",
+    "firstNameLength": "First name must be between 2 and 50 characters long",
+    "lastNameRequired": "Last name is required",
+    "lastNameLength": "Last name must be between 2 and 50 characters long",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Please enter a valid email address",
+    "passwordRequired": "Password is required",
+    "passwordLength": "Password must be between 12 and 72 characters long",
+    "passwordWeak": "Password must include an uppercase letter, a lowercase letter, a number and a special character",
+    "confirmPasswordRequired": "Please confirm your password",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "invalidCharacters": "Invalid characters in input"
+  },
+  "login": {
+    "title": "Log in",
+    "subtitle": "Welcome back. Your ads and jobs are waiting.",
+    "email": "Email",
+    "emailPlaceholder": "name@company.com",
+    "password": "Password",
+    "passwordPlaceholder": "Your password",
+    "submit": "Log in",
+    "noAccount": "Don't have an account?",
+    "registerNow": "Create an account"
+  },
+
+  "register": {
+    "title": "Create your account",
+    "subtitle": "Write ads with a local AI helper and watch every job run.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "submit": "Create account",
+    "alreadyHaveAccount": "Already have an account?",
+    "login": "Log in",
+    "passwordRules": {
+      "length": "12 to 72 characters",
+      "lowercase": "One lowercase letter",
+      "uppercase": "One uppercase letter",
+      "number": "One number",
+      "special": "One symbol (! @ # $ %)",
+      "allowed": "No spaces or accented letters"
+    }
+  }
+}

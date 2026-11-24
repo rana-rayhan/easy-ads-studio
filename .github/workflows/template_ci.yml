@@ -1,0 +1,78 @@
+# The name shown in the "Actions" tab on GitHub
+name: test_workflow
+
+permissions:
+  contents: read
+
+# WHEN the workflow runs
+on:
+  push:
+    branches: [master]   # every push to main
+  pull_request:        # every pull request opened or updated
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
+
+
+jobs:
+  test_job:
+    name: test_job
+    runs-on: ubuntu-latest
+
+    # A real Postgres database that runs next to the job, only during this run
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: template_db
+        ports:
+          - 5432:5432
+        # Wait until the database is ready before the steps start
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      # Download your repository code
+      - name: test_checkout
+        uses: actions/checkout@v5
+
+      # Install Node.js and cache npm downloads
+      - name: test_setup_node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      # Install dependencies for backend and frontend from the root lockfile
+      - name: test_install
+        run: npm ci
+
+      # Check code style (ESLint) in both workspaces
+      - name: test_lint
+        run: npm run lint
+
+      # Check TypeScript types in both workspaces
+      - name: test_typecheck
+        run: npm run typecheck
+
+      # Run the tests. The values below are fake, only for CI (there is no .env on GitHub)
+      - name: test_unit_test
+        run: npm test
+        env:
+          SERVER_PORT: "4040"
+          STAGE: dev
+          CLIENT_HOST_REACT: http://localhost:3030
+          TOKEN_SECRET: ci_fake_token_secret
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: template_db
+          DB_MIGRATION: required
+
+      # Compile both apps for production
+      - name: test_build
+        run: npm run build

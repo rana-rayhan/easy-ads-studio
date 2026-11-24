@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.test.example
+!.env.sample
+
+# Uploaded ad images
+backend/uploads/
+
+# Google Ads service account key (secret, never commit)
+backend/google-ads-key.json
+
+# Build output
+dist/
+build/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+.DS_Store
+notes/
+note.md
+
+# Test and tooling caches
+.nyc_output/
+.eslintcache
+.vite/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Temporary files
+*.tmp
+*.swp
+
+
+# Local secrets and test files (never commit)
+secrets/
+cookies.txt
+
+# Launch video output (local only)
+brag-output/

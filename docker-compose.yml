@@ -1,0 +1,153 @@
+# Runs the whole app with Docker: docker compose up --build
+# Open http://localhost:8080 (nginx sends /api to the backend and everything else to React).
+name: admanager
+
+services:
+  # ---------- Data and queue ----------
+  admanager-db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: admanager_db
+    ports:
+      - "5455:5432" # 5455 on your computer, so it does not clash with a local PostgreSQL
+    volumes:
+      - admanager-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  admanager-redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  admanager-rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "15673:15672" # RabbitMQ web page: http://localhost:15673 (guest / guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ---------- AI (Ollama) ----------
+  admanager-ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - admanager-ollama-data:/root/.ollama # the model is kept here, so it is downloaded only once
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Downloads the AI model once (about 3.3 GB), then stops
+  admanager-ollama-pull:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: admanager-ollama:11434
+    entrypoint: ["ollama", "pull", "gemma3:4b"]
+    depends_on:
+      admanager-ollama:
+        condition: service_healthy
+
+  # ---------- App ----------
+  admanager-backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: ./backend/.env
+    # These replace the "localhost" values from backend/.env with the Docker service names
+    environment: &backend-env
+      DB_HOST: admanager-db
+      DB_PORT: "5432"
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: admanager_db
+      REDIS_URL: redis://admanager-redis:6379
+      RABBITMQ_URL: amqp://guest:guest@admanager-rabbitmq:5672
+      OLLAMA_URL: http://admanager-ollama:11434
+      CLIENT_HOST_REACT: http://localhost:8080
+    ports:
+      - "4040:4040" # API docs: http://localhost:4040/api-docs
+    depends_on: &backend-deps
+      admanager-db:
+        condition: service_healthy
+      admanager-redis:
+        condition: service_healthy
+      admanager-rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:4040/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    stop_grace_period: 15s
+    volumes: &app-volumes
+      - .:/app
+      - /app/node_modules
+
+  # Same image as the backend, but runs the ad worker
+  admanager-ad-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["npm", "run", "ad-worker"]
+    env_file: ./backend/.env
+    environment: *backend-env
+    depends_on: *backend-deps
+    volumes: *app-volumes
+
+  # Same image as the backend, but runs the AI worker
+  admanager-ai-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["npm", "run", "ai-worker"]
+    env_file: ./backend/.env
+    environment: *backend-env
+    depends_on:
+      admanager-redis:
+        condition: service_healthy
+      admanager-rabbitmq:
+        condition: service_healthy
+      admanager-ollama-pull:
+        condition: service_completed_successfully
+    volumes: *app-volumes
+
+  admanager-frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      VITE_STAGE: local
+      VITE_API_ENDPOINT: http://localhost:8080/api # the browser calls the API through nginx
+    depends_on:
+      - admanager-backend
+    volumes: *app-volumes
+
+  admanager-nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - admanager-backend
+      - admanager-frontend
+
+volumes:
+  admanager-db-data:
+  admanager-ollama-data:

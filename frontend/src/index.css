@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Page background, text color and fonts for the whole app (colors and fonts come from tailwind.config.js) */
+@layer base {
+  body {
+    @apply bg-paper font-sans text-espresso-800 antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+}
