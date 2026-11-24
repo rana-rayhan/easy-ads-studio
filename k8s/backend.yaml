@@ -44,7 +44,7 @@ spec:
             - name: CLIENT_HOST_REACT
               value: http://localhost:8080
             - name: OLLAMA_URL
-              value: http://admanager-ollama:11434
+              value: http://host.minikube.internal:11434 # Ollama on your Mac (uses the GPU)
           # Uploaded ad images go to a folder shared by all pods (see volumes below)
           volumeMounts:
             - name: uploads

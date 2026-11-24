@@ -50,7 +50,7 @@ Open <http://localhost:8080>.
 
 The same app on a local Kubernetes cluster, with **2 backend pods** and nginx as the load balancer in front of them. Use Docker for daily work; this setup is for learning Kubernetes.
 
-You need [minikube](https://minikube.sigs.k8s.io/) and `kubectl`. On macOS:
+You need [minikube](https://minikube.sigs.k8s.io/), `kubectl` and Ollama on your computer (the pods use it, see [Run it with Docker](#run-it-with-docker)). On macOS:
 
 ```bash
 brew install minikube kubectl
@@ -60,10 +60,9 @@ First time:
 
 ```bash
 cp backend/.env.sample backend/.env
-minikube start --memory=6g --cpus=4
+minikube start
 minikube image build -t admanager-backend:local -f backend/Dockerfile .
 minikube image build -t admanager-frontend:local -f frontend/Dockerfile .
-minikube image pull ollama/ollama:latest
 kubectl create secret generic backend-env --from-env-file=backend/.env
 kubectl apply -f k8s/
 kubectl get pods -w
@@ -77,8 +76,7 @@ kubectl port-forward service/admanager-nginx 8080:80
 
 Open <http://localhost:8080>.
 
-- The first start downloads the AI model (about 3.3 GB), so the AI buttons work after a few minutes.
-- The Ollama model needs minikube with **6 GB of memory and 4 CPUs**, and Docker Desktop with at least 8 GB (Settings → Resources). It runs on the CPU only, so AI answers are slow (an image job can take a few minutes).
+- The AI runs in Ollama on your computer (with the GPU), not inside Kubernetes, so answers are fast.
 - Next time you only need `minikube start` and the `port-forward`.
 - [k8s/README.md](k8s/README.md) explains each file and how to test nginx, the database and the workers.
 

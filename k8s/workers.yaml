@@ -88,7 +88,7 @@ spec:
             - name: RABBITMQ_URL
               value: amqp://guest:guest@admanager-rabbitmq:5672
             - name: OLLAMA_URL
-              value: http://admanager-ollama:11434
+              value: http://host.minikube.internal:11434 # Ollama on your Mac (uses the GPU)
           # Reads the uploaded images for "Text from image" and "Check with AI"
           volumeMounts:
             - name: uploads
