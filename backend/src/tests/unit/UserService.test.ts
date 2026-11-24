@@ -14,14 +14,14 @@ describe("UserService.getUsers", () => {
 
   it("returns all users without their passwords", async () => {
     jest.mocked(UserRepo.findAll).mockResolvedValue([
-      { id: 1, email: "ana@example.com", password: "hash1" },
-      { id: 2, email: "bob@example.com", password: "hash2" },
+      { id: 1, email: "ana@example.com", passwordHash: "hash1" },
+      { id: 2, email: "bob@example.com", passwordHash: "hash2" },
     ] as never);
 
     const result = await UserService.getUsers();
 
     expect(result).toHaveLength(2);
-    result.forEach((user) => expect(user).not.toHaveProperty("password"));
+    result.forEach((user) => expect(user).not.toHaveProperty("passwordHash"));
     expect(result[0].email).toBe("ana@example.com");
   });
 });
@@ -35,13 +35,13 @@ describe("UserService.getUserDetails", () => {
     jest.mocked(UserRepo.findById).mockResolvedValue({
       id: 1,
       email: "ana@example.com",
-      password: "hash1",
+      passwordHash: "hash1",
     } as never);
 
     const result = await UserService.getUserDetails("1");
 
     expect(UserRepo.findById).toHaveBeenCalledWith({ id: "1" });
-    expect(result).not.toHaveProperty("password");
+    expect(result).not.toHaveProperty("passwordHash");
     expect(result.email).toBe("ana@example.com");
   });
 

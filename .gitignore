@@ -52,7 +52,7 @@ Thumbs.db
 
 
 # Local secrets and test files (never commit)
-secrets/
+/secrets/
 cookies.txt
 
 # Launch video output (local only)
