@@ -6,7 +6,8 @@ import GoogleCampaignService from "../google/GoogleCampaignService";
 // Used by the AI worker (JOB_MODE=worker) and by the API itself (JOB_MODE=local).
 class AiJobService {
   // Returns true when the job worked, false when it failed (the worker uses this to ack or nack).
-  static async run(jobId: string, type: string, input: Record<string, string>): Promise<boolean> {
+  // isLastTry: false when the worker will try again, so the UI shows "trying again" instead of "failed".
+  static async run(jobId: string, type: string, input: Record<string, string>, isLastTry = true): Promise<boolean> {
     const jobKey = `ai-job:${jobId}`;
     console.log(`AI job ${jobId} (${type}): started ---***`);
 
@@ -37,6 +38,13 @@ class AiJobService {
     } catch (error) {
       const message = error instanceof Error ? error.message : "AI job failed";
       console.error(`AI job ${jobId}: failed -`, message);
+
+      // Another try is coming: keep the job "processing" so the UI keeps waiting
+      if (!isLastTry) {
+        await redisClient.hSet(jobKey, { status: "processing", message: `Failed, trying again: ${message}` });
+        return false;
+      }
+
       await redisClient.hSet(jobKey, { status: "failed", message });
       return false;
     }

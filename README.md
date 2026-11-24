@@ -20,6 +20,10 @@ https://github.com/user-attachments/assets/599f6869-6733-4dc1-be05-02bf94a65272
 
 **Worker or Local** (top bar): _Worker_ sends each job through RabbitMQ to a worker. _Local_ lets the API do the job itself. The dashboard shows which parts are running.
 
+In Worker mode a failed job is tried 3 times, then moved to a dead-letter queue (`ai_job_dead`, `ad_job_create_dead`) that you can see on the RabbitMQ web page.
+
+> Updating from an older version? RabbitMQ keeps the old queues and refuses the new settings (`PRECONDITION_FAILED`). Delete `ai_job` and `ad_job_create` once on the RabbitMQ web page (Queues → Delete), or in Docker run `docker compose up -d --force-recreate admanager-rabbitmq`.
+
 ## Run it with Docker
 
 You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Ollama](https://ollama.com) on your computer. Ollama runs outside Docker because it can use your GPU there, so AI answers take seconds instead of minutes.

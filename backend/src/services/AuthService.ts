@@ -27,7 +27,6 @@ class AuthService {
   static async login(data: { email: string; password: string }) {
     const email = data.email.toLowerCase().trim();
     const user = await UserRepo.findByEmail({ email });
-    console.log({ s: data.password, s2: user?.passwordHash });
 
     // Same error for "no user" and "wrong password", so nobody can test which emails exist.
     const ok = user && (await bcrypt.compare(data.password, user.passwordHash));

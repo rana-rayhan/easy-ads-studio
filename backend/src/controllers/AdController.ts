@@ -7,6 +7,11 @@ import ApiResponse from "../utils/ApiResponse";
 import AdJobService from "../services/jobs/AdJobService";
 
 export const AD_JOB_QUEUE = "ad_job_create";
+// Jobs that failed every try end up here (dead-letter queue), so they can be checked later
+export const AD_JOB_DEAD_QUEUE = "ad_job_create_dead";
+// Same settings everywhere the queue is used, or RabbitMQ refuses it (PRECONDITION_FAILED).
+// A rejected message goes to AD_JOB_DEAD_QUEUE instead of being thrown away.
+export const AD_JOB_QUEUE_OPTIONS = { durable: true, deadLetterExchange: "", deadLetterRoutingKey: AD_JOB_DEAD_QUEUE };
 
 class AdController {
   // Saves the ad in Redis, creates a job, then puts the job in the queue for the worker.
@@ -52,7 +57,7 @@ class AdController {
       } else {
         // 2b. Worker mode: put the job in the queue. The worker picks it up later.
         const ch = await getChannel();
-        await ch.assertQueue(AD_JOB_QUEUE, { durable: true });
+        await ch.assertQueue(AD_JOB_QUEUE, AD_JOB_QUEUE_OPTIONS);
         ch.sendToQueue(AD_JOB_QUEUE, Buffer.from(JSON.stringify({ jobId, adId })), { persistent: true });
       }
 

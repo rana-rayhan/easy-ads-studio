@@ -5,7 +5,8 @@ import { connectRedis, redisClient } from "../../database/RedisClient";
 // Used by the ad worker (JOB_MODE=worker) and by the API itself (JOB_MODE=local).
 class AdJobService {
   // Returns true when the job worked, false when it failed (the worker uses this to ack or nack).
-  static async run(jobId: string, adId: string): Promise<boolean> {
+  // isLastTry: false when the worker will try again, so the UI shows "trying again" instead of "failed".
+  static async run(jobId: string, adId: string, isLastTry = true): Promise<boolean> {
     const jobKey = `ad-job:${jobId}`;
     const adKey = `ad:${adId}`;
     console.log(`Job ${jobId}: started ---***`);
@@ -25,6 +26,13 @@ class AdJobService {
       return true;
     } catch (error) {
       console.error(`Job ${jobId}: failed`, error);
+
+      // Another try is coming: keep the job "processing" so the UI keeps waiting
+      if (!isLastTry) {
+        await redisClient.hSet(jobKey, { status: "processing", message: "Failed, trying again" });
+        return false;
+      }
+
       await redisClient.hSet(jobKey, { status: "failed", message: "Ad creation failed" });
       await redisClient.hSet(adKey, { status: "failed" });
       return false;
