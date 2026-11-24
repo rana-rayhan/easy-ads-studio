@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import sharp from "sharp";
 import createHttpError from "http-errors";
 import { JWT } from "google-auth-library";
 import {
@@ -22,7 +23,11 @@ Talking to the Google Ads REST API always takes the same steps:
 How a campaign is built (each one points to the one before it):
   1. Campaign budget -> how much money per day
   2. Campaign        -> uses the budget, decides where ads show (here: Display network)
-  3. Ad group        -> a group of ads inside the campaign (the ad itself comes later)
+  3. Ad group        -> a group of ads inside the campaign
+
+How an ad is built (createDisplayAd, run by the ad worker):
+  4. Image assets    -> the image uploaded twice: wide (1.91:1) and square (1:1), Google needs both
+  5. Ad group ad     -> a "responsive display ad" in the ad group: text + the 2 images + website
 
 Google answers each create with a "resource name", like "customers/1234567890/campaigns/123".
 Money is in "micros": 1 euro = 1,000,000 micros.
@@ -181,6 +186,69 @@ class GoogleCampaignService {
       // Resource names are what later steps (the ad) need.
       resourceNames: { budget: budgetResourceName, campaign: campaignResourceName, adGroup: adGroupResourceName },
     };
+  }
+
+  // Creates a real display ad (PAUSED) in the first ad group of a campaign. Used by the ad worker.
+  static async createDisplayAd({
+    campaignId,
+    headline,
+    description,
+    businessName,
+    finalUrl,
+    imagePath,
+    adId,
+  }: {
+    campaignId: string;
+    headline: string;
+    description: string;
+    businessName: string;
+    finalUrl: string;
+    imagePath: string;
+    adId: string;
+  }) {
+    // 1. Find the ad group of the campaign (every campaign made by this app has one)
+    const data = await this.search(
+      `SELECT ad_group.resource_name FROM ad_group WHERE campaign.id = ${Number(campaignId)} LIMIT 1`,
+    );
+    const result = data as { results?: { adGroup: { resourceName: string } }[] };
+    const adGroupResourceName = result.results?.[0]?.adGroup.resourceName;
+    if (!adGroupResourceName) throw new Error(`Campaign ${campaignId} has no ad group`);
+
+    // 2. Crop the image to the 2 shapes Google needs. "cover" fills the shape and cuts off the edges.
+    const wideImage = await sharp(imagePath).resize(1200, 628, { fit: "cover" }).jpeg({ quality: 85 }).toBuffer();
+    const squareImage = await sharp(imagePath).resize(1200, 1200, { fit: "cover" }).jpeg({ quality: 85 }).toBuffer();
+
+    // 3. Upload both images as image assets (Google wants the file as base64 text). Names must be unique.
+    const wideAssetResourceName = await this.mutate("assets", {
+      name: `Ad ${adId} wide`,
+      type: "IMAGE",
+      imageAsset: { data: wideImage.toString("base64") },
+    });
+    const squareAssetResourceName = await this.mutate("assets", {
+      name: `Ad ${adId} square`,
+      type: "IMAGE",
+      imageAsset: { data: squareImage.toString("base64") },
+    });
+
+    // 4. Create the ad in the ad group (PAUSED, so it can never show by itself)
+    const adGroupAdResourceName = await this.mutate("adGroupAds", {
+      adGroup: adGroupResourceName,
+      status: "PAUSED",
+      ad: {
+        finalUrls: [finalUrl],
+        responsiveDisplayAd: {
+          headlines: [{ text: headline }], // max 30 characters
+          longHeadline: { text: headline }, // max 90 characters
+          descriptions: [{ text: description }], // max 90 characters
+          businessName, // max 25 characters
+          marketingImages: [{ asset: wideAssetResourceName }],
+          squareMarketingImages: [{ asset: squareAssetResourceName }],
+        },
+      },
+    });
+
+    // The resource name ends with "adGroupId~adId", e.g. "customers/123/adGroupAds/456~789" -> "789"
+    return adGroupAdResourceName.split("~").pop() as string;
   }
 
   // Reads the latest 50 campaigns from Google Ads. LIMIT 50 fits in one page, so one request is enough.

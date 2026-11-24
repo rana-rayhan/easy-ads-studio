@@ -15,8 +15,8 @@ https://github.com/user-attachments/assets/599f6869-6733-4dc1-be05-02bf94a65272
 1. **Create an account** and log in.
 2. **AI studio**: enter your product and audience, click **Suggest ad text**, then click a headline or description to use it.
 3. **Create ad**: choose an image. Click **Text from image** to let the AI write text from it, or **Check with AI** to get a score and a better version. The preview updates as you type.
-4. Click **Create ad**. The job appears in **Your jobs** and moves from _Waiting_ to _Done_.
-5. **Campaigns** (optional, needs Google Ads): create a paused campaign, then click **Explain with AI** for a short summary.
+4. Add your website and business name, choose a campaign, and click **Create ad**. The job appears in **Your jobs** and moves from _Waiting_ to _Done_.
+5. **Campaigns** (optional, needs Google Ads): create a paused campaign for your ads, then click **Explain with AI** for a short summary.
 
 **Worker or Local** (top bar): _Worker_ sends each job through RabbitMQ to a worker. _Local_ lets the API do the job itself. The dashboard shows which parts are running.
 
@@ -81,6 +81,8 @@ The campaigns section needs a Google Ads **test account** (free, never shows ads
 ```bash
 npm run google:check -w backend
 ```
+
+To create real ads, set `GOOGLE_ADS_MODE=real` in `backend/.env`. Then **Create ad** uploads the image (cut to a wide and a square copy) and creates a paused display ad in the campaign you choose. With `mock`, the ad step is faked.
 
 ## Technology
 

@@ -5,6 +5,7 @@ import { connectRedis, redisClient } from "../database/RedisClient";
 import { getChannel } from "../database/RabbitClient";
 import ApiResponse from "../utils/ApiResponse";
 import AdJobService from "../services/jobs/AdJobService";
+import { GOOGLE_ADS_MODE } from "../secrets/envSecret";
 
 export const AD_JOB_QUEUE = "ad_job_create";
 // Jobs that failed every try end up here (dead-letter queue), so they can be checked later
@@ -22,6 +23,15 @@ class AdController {
       if (!headline || !description) throw createHttpError(400, "headline and description are required");
       if (!req.file) throw createHttpError(400, "image is required");
 
+      // Google needs a website and a business name for every display ad
+      const finalUrl = String(req.body.finalUrl ?? "").trim();
+      const businessName = String(req.body.businessName ?? "").trim();
+      const campaignId = String(req.body.campaignId ?? "").trim();
+      if (!/^https?:\/\/\S+\.\S+/.test(finalUrl)) throw createHttpError(400, "Website must start with http:// or https://");
+      if (!businessName || businessName.length > 25) throw createHttpError(400, "Business name is required (max 25 characters)");
+      // Real Google Ads puts the ad in a campaign, so one must be chosen
+      if (GOOGLE_ADS_MODE === "real" && !campaignId) throw createHttpError(400, "Choose a campaign for the ad");
+
       const adId = randomUUID();
       const jobId = randomUUID();
       // The UI switch sends "X-Job-Mode: local" or "worker" with every request (worker is the default)
@@ -35,6 +45,9 @@ class AdController {
         headline: String(headline).trim(),
         description: String(description).trim(),
         imagePath: req.file.path,
+        finalUrl,
+        businessName,
+        campaignId,
         status: "pending",
       });
       await redisClient.hSet(`ad-job:${jobId}`, {
