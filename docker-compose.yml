@@ -42,8 +42,12 @@ services:
       retries: 10
 
   # ---------- AI (Ollama) ----------
+  # By default the app uses Ollama on your Mac (fast, uses the GPU).
+  # To run Ollama in Docker instead (slow, CPU only):
+  #   OLLAMA_URL=http://admanager-ollama:11434 docker compose --profile ollama up --build -d
   admanager-ollama:
     image: ollama/ollama:latest
+    profiles: ["ollama"]
     volumes:
       - admanager-ollama-data:/root/.ollama # the model is kept here, so it is downloaded only once
     healthcheck:
@@ -55,6 +59,7 @@ services:
   # Downloads the AI model once (about 3.3 GB), then stops
   admanager-ollama-pull:
     image: ollama/ollama:latest
+    profiles: ["ollama"]
     environment:
       OLLAMA_HOST: admanager-ollama:11434
     entrypoint: ["ollama", "pull", "gemma3:4b"]
@@ -77,7 +82,7 @@ services:
       DB_DATABASE: admanager_db
       REDIS_URL: redis://admanager-redis:6379
       RABBITMQ_URL: amqp://guest:guest@admanager-rabbitmq:5672
-      OLLAMA_URL: http://admanager-ollama:11434
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434} # Ollama on your Mac
       CLIENT_HOST_REACT: http://localhost:8080
     ports:
       - "4040:4040" # API docs: http://localhost:4040/api-docs
@@ -123,8 +128,6 @@ services:
         condition: service_healthy
       admanager-rabbitmq:
         condition: service_healthy
-      admanager-ollama-pull:
-        condition: service_completed_successfully
     volumes: *app-volumes
 
   admanager-frontend:

@@ -22,7 +22,15 @@ https://github.com/user-attachments/assets/599f6869-6733-4dc1-be05-02bf94a65272
 
 ## Run it with Docker
 
-You need [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Ollama](https://ollama.com) on your computer. Ollama runs outside Docker because it can use your GPU there, so AI answers take seconds instead of minutes.
+
+```bash
+brew install ollama
+brew services start ollama
+ollama pull gemma3:4b
+```
+
+Then start the app:
 
 ```bash
 cp backend/.env.sample backend/.env
@@ -31,8 +39,7 @@ docker compose up --build
 
 Open <http://localhost:8080>.
 
-- The first start downloads the AI model (about 3.3 GB), so the AI buttons work after a few minutes.
-- AI in Docker on a Mac runs without the GPU, so answers are slower than running Ollama locally.
+- No local Ollama? Run it in Docker instead (CPU only, an image job can take a few minutes): `OLLAMA_URL=http://admanager-ollama:11434 docker compose --profile ollama up --build`
 - RabbitMQ web page: <http://localhost:15673> (guest / guest). API docs: <http://localhost:4040/api-docs>.
 
 ## Run it locally
