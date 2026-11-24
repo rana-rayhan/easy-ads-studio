@@ -34,6 +34,17 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+      # Redis for login sessions (the auth tests log in)
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       # Download your repository code
       - name: test_checkout
@@ -72,6 +83,10 @@ jobs:
           DB_PASSWORD: postgres
           DB_DATABASE: template_db
           DB_MIGRATION: required
+          REDIS_URL: redis://localhost:6379
+          RABBITMQ_URL: amqp://guest:guest@localhost:5672 # not used by the tests, only needs a valid value
+          JWT_ACCESS_SECRET: ci_fake_access_secret
+          JWT_REFRESH_SECRET: ci_fake_refresh_secret
 
       # Compile both apps for production
       - name: test_build
