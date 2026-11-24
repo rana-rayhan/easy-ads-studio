@@ -15,14 +15,26 @@ https://github.com/user-attachments/assets/599f6869-6733-4dc1-be05-02bf94a65272
 1. **Create an account** and log in.
 2. **AI studio**: enter your product and audience, click **Suggest ad text**, then click a headline or description to use it.
 3. **Create ad**: choose an image. Click **Text from image** to let the AI write text from it, or **Check with AI** to get a score and a better version. The preview updates as you type.
-4. Click **Create ad**. The job appears in **Your jobs** and moves from _Waiting_ to _Done_.
-5. **Campaigns** (optional, needs Google Ads): create a paused campaign, then click **Explain with AI** for a short summary.
+4. Add your website and business name, choose a campaign, and click **Create ad**. The job appears in **Your jobs** and moves from _Waiting_ to _Done_.
+5. **Campaigns** (optional, needs Google Ads): create a paused campaign for your ads, then click **Explain with AI** for a short summary.
 
 **Worker or Local** (top bar): _Worker_ sends each job through RabbitMQ to a worker. _Local_ lets the API do the job itself. The dashboard shows which parts are running.
 
+In Worker mode a failed job is tried 3 times, then moved to a dead-letter queue (`ai_job_dead`, `ad_job_create_dead`) that you can see on the RabbitMQ web page.
+
+> Updating from an older version? RabbitMQ keeps the old queues and refuses the new settings (`PRECONDITION_FAILED`). Delete `ai_job` and `ad_job_create` once on the RabbitMQ web page (Queues → Delete), or in Docker run `docker compose up -d --force-recreate admanager-rabbitmq`.
+
 ## Run it with Docker
 
-You need [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Ollama](https://ollama.com) on your computer. Ollama runs outside Docker because it can use your GPU there, so AI answers take seconds instead of minutes.
+
+```bash
+brew install ollama
+brew services start ollama
+ollama pull gemma3:4b
+```
+
+Then start the app:
 
 ```bash
 cp backend/.env.sample backend/.env
@@ -31,8 +43,7 @@ docker compose up --build
 
 Open <http://localhost:8080>.
 
-- The first start downloads the AI model (about 3.3 GB), so the AI buttons work after a few minutes.
-- AI in Docker on a Mac runs without the GPU, so answers are slower than running Ollama locally.
+- No local Ollama? Run it in Docker instead (CPU only, an image job can take a few minutes): `OLLAMA_URL=http://admanager-ollama:11434 docker compose --profile ollama up --build`
 - RabbitMQ web page: <http://localhost:15673> (guest / guest). API docs: <http://localhost:4040/api-docs>.
 
 ## Run it with Kubernetes
@@ -106,6 +117,8 @@ The campaigns section needs a Google Ads **test account** (free, never shows ads
 ```bash
 npm run google:check -w backend
 ```
+
+To create real ads, set `GOOGLE_ADS_MODE=real` in `backend/.env`. Then **Create ad** uploads the image (cut to a wide and a square copy) and creates a paused display ad in the campaign you choose. With `mock`, the ad step is faked.
 
 ## Technology
 

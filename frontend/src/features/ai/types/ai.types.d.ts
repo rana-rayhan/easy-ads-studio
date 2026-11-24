@@ -41,4 +41,11 @@ interface IAiCampaignSummary {
 }
 
 // The "Create ad" form values (shared by the ad form and the AI panel)
-type CreateAdFormValues = { headline: string; description: string; image: import("antd").UploadFile[] };
+type CreateAdFormValues = {
+  headline: string;
+  description: string;
+  image: import("antd").UploadFile[];
+  finalUrl: string;
+  businessName: string;
+  campaignId?: string;
+};

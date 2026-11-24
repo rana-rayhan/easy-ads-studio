@@ -1,7 +1,7 @@
 import axiosInstance from "../../../shared/api/axiosInstance";
 
 class AdApi {
-  // POST /api/ads (multipart: headline, description, image)
+  // POST /api/ads (multipart: headline, description, image, finalUrl, businessName, campaignId)
   static async create(formData: FormData) {
     const { data } = await axiosInstance.post("/ads", formData);
     return data.payload as CreateAdResponse;

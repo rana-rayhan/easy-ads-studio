@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { getChannel } from "../database/RabbitClient";
 import ApiResponse from "../utils/ApiResponse";
-import { AD_JOB_QUEUE } from "./AdController";
-import { AI_JOB_QUEUE } from "./AiController";
+import { AD_JOB_QUEUE, AD_JOB_QUEUE_OPTIONS } from "./AdController";
+import { AI_JOB_QUEUE, AI_JOB_QUEUE_OPTIONS } from "./AiController";
 
 class WorkerController {
   // GET /api/workers -> is RabbitMQ up, and is a worker listening on each queue?
@@ -16,8 +16,8 @@ class WorkerController {
       try {
         // assertQueue also tells how many consumers (running workers) listen on the queue
         const ch = await getChannel();
-        const adQueue = await ch.assertQueue(AD_JOB_QUEUE, { durable: true });
-        const aiQueue = await ch.assertQueue(AI_JOB_QUEUE, { durable: true });
+        const adQueue = await ch.assertQueue(AD_JOB_QUEUE, AD_JOB_QUEUE_OPTIONS);
+        const aiQueue = await ch.assertQueue(AI_JOB_QUEUE, AI_JOB_QUEUE_OPTIONS);
         rabbitmq = true;
         adWorker = adQueue.consumerCount > 0;
         aiWorker = aiQueue.consumerCount > 0;

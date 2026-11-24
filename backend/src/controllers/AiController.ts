@@ -9,6 +9,11 @@ import AiJobService from "../services/jobs/AiJobService";
 // AI answers take a few seconds, so every AI request becomes a job:
 // API saves the job in Redis + puts it in this queue -> AI worker (src/aiWorker.ts) does the AI work.
 export const AI_JOB_QUEUE = "ai_job";
+// Jobs that failed every try end up here (dead-letter queue), so they can be checked later
+export const AI_JOB_DEAD_QUEUE = "ai_job_dead";
+// Same settings everywhere the queue is used, or RabbitMQ refuses it (PRECONDITION_FAILED).
+// A rejected message goes to AI_JOB_DEAD_QUEUE instead of being thrown away.
+export const AI_JOB_QUEUE_OPTIONS = { durable: true, deadLetterExchange: "", deadLetterRoutingKey: AI_JOB_DEAD_QUEUE };
 
 class AiController {
   // ==================== Private method (used only inside this class) ====================
@@ -39,7 +44,7 @@ class AiController {
 
     // 2b. Worker mode: put the job in the queue. The AI worker picks it up.
     const ch = await getChannel();
-    await ch.assertQueue(AI_JOB_QUEUE, { durable: true });
+    await ch.assertQueue(AI_JOB_QUEUE, AI_JOB_QUEUE_OPTIONS);
     ch.sendToQueue(AI_JOB_QUEUE, Buffer.from(JSON.stringify({ jobId, type, input })), { persistent: true });
 
     return jobId;

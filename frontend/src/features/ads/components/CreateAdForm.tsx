@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import type { FormInstance, UploadFile } from "antd";
-import { Alert, Button, Form, Input, Progress, Spin, Upload, message } from "antd";
+import { Alert, Button, Form, Input, Progress, Select, Spin, Upload, message } from "antd";
 import { CheckCircleOutlined, PictureOutlined, UploadOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { useCreateAd } from "../hooks/useAdHook";
 import AiApi from "../../ai/api/AiApi";
+import GoogleAdsApi from "../../googleAds/api/GoogleAdsApi";
 
 const ACCEPTED_IMAGES = "image/jpeg,image/png,image/webp";
 
@@ -22,9 +23,26 @@ const CreateAdForm = ({ form }: { form: FormInstance<CreateAdFormValues> }) => {
     formData.append("headline", values.headline.trim());
     formData.append("description", values.description.trim());
     formData.append("image", file);
+    formData.append("finalUrl", values.finalUrl.trim());
+    formData.append("businessName", values.businessName.trim());
+    formData.append("campaignId", values.campaignId ?? "");
 
-    createAd(formData, { onSuccess: () => form.resetFields() });
+    // Clear only the ad text and image. Website, business name and campaign stay for the next ad.
+    createAd(formData, { onSuccess: () => form.resetFields(["headline", "description", "image"]) });
   };
+
+  // ==================== Campaigns for the dropdown (same list as the Campaigns section) ====================
+  const campaignsQuery = useQuery({
+    queryKey: ["googleCampaigns"],
+    queryFn: GoogleAdsApi.listCampaigns,
+    retry: false, // without Google Ads set up this fails, and the form still works in mock mode
+  });
+
+  // Only display campaigns can have display ads
+  const campaignOptions = [];
+  for (const campaign of campaignsQuery.data ?? []) {
+    if (campaign.channel === "DISPLAY") campaignOptions.push({ value: campaign.id, label: campaign.name });
+  }
 
   // ==================== Idea 2: AI suggests text from the image ====================
   const [imageJobId, setImageJobId] = useState<string | null>(null);
@@ -105,6 +123,10 @@ const CreateAdForm = ({ form }: { form: FormInstance<CreateAdFormValues> }) => {
   // ==================== Live preview: shows the ad while you type ====================
   const headline = Form.useWatch("headline", form) ?? "";
   const description = Form.useWatch("description", form) ?? "";
+  const businessName = Form.useWatch("businessName", form) ?? "";
+  const finalUrl = Form.useWatch("finalUrl", form) ?? "";
+  // Show only the domain in the preview: "https://www.example.com/shop" -> "example.com"
+  const domain = finalUrl.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
   const imageList = Form.useWatch("image", form) as UploadFile[] | undefined;
   const imageFile = imageList?.[0]?.originFileObj;
 
@@ -136,10 +158,42 @@ const CreateAdForm = ({ form }: { form: FormInstance<CreateAdFormValues> }) => {
             <Input.TextArea rows={3} placeholder="Start your day with our morning blend. Order online today." showCount maxLength={90} />
           </Form.Item>
 
+          <div className="grid gap-x-4 sm:grid-cols-2">
+            <Form.Item
+              name="finalUrl"
+              label="Website"
+              rules={[{ required: true, whitespace: true, pattern: /^https?:\/\/\S+\.\S+/, message: "Start with https://" }]}
+            >
+              <Input placeholder="https://example.com" />
+            </Form.Item>
+
+            <Form.Item name="businessName" label="Business name" rules={[{ required: true, whitespace: true, max: 25 }]}>
+              <Input placeholder="Morning Beans" showCount maxLength={25} />
+            </Form.Item>
+          </div>
+
+          <Form.Item
+            name="campaignId"
+            label="Campaign"
+            extra={
+              campaignsQuery.isError
+                ? "Google Ads is not set up, so the ad is created in mock mode."
+                : "The ad is created paused in this campaign. Make one in the Campaigns section."
+            }
+          >
+            <Select
+              placeholder="Choose a campaign"
+              options={campaignOptions}
+              loading={campaignsQuery.isLoading}
+              disabled={campaignsQuery.isError}
+              allowClear
+            />
+          </Form.Item>
+
           <Form.Item
             name="image"
             label="Image"
-            extra="jpeg, png or webp, up to 5 MB"
+            extra="jpeg, png or webp, up to 5 MB. Google gets a wide and a square copy, cut to fit."
             valuePropName="fileList"
             getValueFromEvent={(event: { fileList: UploadFile[] }) => event.fileList}
             rules={[{ required: true, message: "Choose an image for the ad" }]}
@@ -222,7 +276,13 @@ const CreateAdForm = ({ form }: { form: FormInstance<CreateAdFormValues> }) => {
               <p className={`text-sm ${description ? "text-espresso-500" : "text-espresso-300"}`}>
                 {description || "Your description shows up here as you type."}
               </p>
-              <span className="mt-3 inline-block rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold text-sage-700">Sponsored</span>
+              <div className="mt-3 flex items-center gap-2">
+                <span className="rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold text-sage-700">Sponsored</span>
+                <span className={`truncate text-xs ${businessName ? "text-espresso-700" : "text-espresso-300"}`}>
+                  {businessName || "Business name"}
+                  {domain ? ` · ${domain}` : ""}
+                </span>
+              </div>
             </div>
           </div>
         </div>
