@@ -24,6 +24,16 @@ In Worker mode a failed job is tried 3 times, then moved to a dead-letter queue 
 
 > Updating from an older version? RabbitMQ keeps the old queues and refuses the new settings (`PRECONDITION_FAILED`). Delete `ai_job` and `ad_job_create` once on the RabbitMQ web page (Queues → Delete), or in Docker run `docker compose up -d --force-recreate admanager-rabbitmq`.
 
+## Architecture
+
+<img width="1307" height="793" alt="Screenshot 2026-11-26 at 10 41 50 PM" src="https://github.com/user-attachments/assets/bb5f3a69-bd2e-406e-8596-08f2eb1b12bd" />
+
+The API answers right away and hands slow work to workers through RabbitMQ. Workers save progress in Redis, and the web app checks it every 2 seconds.
+
+<img width="1307" height="701" alt="Screenshot 2026-11-26 at 10 42 40 PM" src="https://github.com/user-attachments/assets/295ba0aa-fa83-4270-a374-901bd95becbb" />
+
+A failed job is tried 3 times, with 5 seconds between tries. After the third failure it goes to the dead-letter queue.
+
 ## Run it with Docker
 
 You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Ollama](https://ollama.com) on your computer. Ollama runs outside Docker because it can use your GPU there, so AI answers take seconds instead of minutes.
